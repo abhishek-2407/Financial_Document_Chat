@@ -1,2 +1,2 @@
-export const ApiUrl = "http://13.203.219.87:8000"
+export const ApiUrl = "http://13.232.68.73:8000"
 export const UserId = "admin001"
