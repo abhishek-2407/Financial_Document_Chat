@@ -1,2 +1,2 @@
-export const ApiUrl = "http://127.0.0.1:8000"
+export const ApiUrl = "https://testing-doc-chat.duckdns.org"
 export const UserId = "admin001"
