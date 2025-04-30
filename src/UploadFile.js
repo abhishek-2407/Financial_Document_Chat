@@ -16,6 +16,7 @@ const UploadFile = () => {
   const [loadingUpload, setLoadingUpload] = useState({});
   const [loadingRAG, setLoadingRAG] = useState({});
   const [loadingDelete, setLoadingDelete] = useState({});
+  const [loadingFiles, setLoadingFiles] = useState(true); // New state for initial files loading
 
 
   useEffect(() => {
@@ -23,6 +24,7 @@ const UploadFile = () => {
   }, []);
 
   const fetchFiles = async () => {
+    setLoadingFiles(true); // Set loading state to true before fetching
     try {
       const response = await axios.get(`${ApiUrl}/doc-eval/get-files-and-folders`);
       if (response.data.status === 'success') {
@@ -38,6 +40,9 @@ const UploadFile = () => {
       }
     } catch (error) {
       console.error('Error fetching files:', error);
+      toast.error("Failed to load files and folders");
+    } finally {
+      setLoadingFiles(false); // Set loading to false when done, whether success or error
     }
   };
 
@@ -174,61 +179,72 @@ const UploadFile = () => {
         <button onClick={handleCreateFolder}>Create Folder</button>
       </div>
 
-      <div className="folders-grid">
-
-
-      {folders.map((folder) => (
-        <div key={folder} className="folder-block">
-          <h2>{folder}</h2>
-          <div className="upload-box">
-            <input
-              type="file"
-              onChange={(e) => handleFileSelection(e, folder)}
-              accept="application/pdf"
-            />
-            <button className="upload-btn" onClick={() => handleUploadDocuments(folder)}>
-              {loadingUpload[folder] ? <ClipLoader color="#fff" size={20} /> : 'Upload Documents'}
-            </button>
-          </div>
-          <table className="file-table">
-            <thead>
-              <tr>
-                <th className="col-filename">File Name</th>
-                <th className="col-status">Status</th>
-                <th className="col-action">Action</th>
-                <th className="col-delete">Delete</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(filesByFolder[folder] || []).map((file) => (
-                <tr key={file.file_id}>
-                  <td>{file.file_name}</td>
-                  <td>
-                    {file.rag_status ? <span className="success">✅ RAG Created</span> : 'Pending'}
-                  </td>
-                  <td>
-                    {!file.rag_status && (
-                      <button onClick={() => handleCreateRAG(file.file_id, folder)}>
-                        {loadingRAG[file.file_id] ? <ClipLoader color="#000" size={15} /> : 'Create RAG'}
-                      </button>
-                    )}
-                  </td>
-                  <td>
-                    <button className="delete-btn" onClick={() => handleDeleteFile(file.file_id, folder)}>
-                      {loadingDelete[file.file_id] ? (
-                        <ClipLoader color="#fff" size={15} />
-                      ) : (
-                        '🗑️'
-                      )}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {loadingFiles ? (
+        <div className="loading-container">
+          <ClipLoader color="#d4076a" size={40} />
+          <p>Loading folders and files...</p>
         </div>
-      ))}
-      </div>
+      ) : (
+        <div className="folders-grid">
+          {folders.length === 0 ? (
+            <div className="no-folders">
+              <p>No folders found. Create a new folder to get started.</p>
+            </div>
+          ) : (
+            folders.map((folder) => (
+              <div key={folder} className="folder-block">
+                <h2>{folder}</h2>
+                <div className="upload-box">
+                  <input
+                    type="file"
+                    onChange={(e) => handleFileSelection(e, folder)}
+                    accept="application/pdf"
+                  />
+                  <button className="upload-btn" onClick={() => handleUploadDocuments(folder)}>
+                    {loadingUpload[folder] ? <ClipLoader color="#fff" size={20} /> : 'Upload Documents'}
+                  </button>
+                </div>
+                <table className="file-table">
+                  <thead>
+                    <tr>
+                      <th className="col-filename">File Name</th>
+                      <th className="col-status">Status</th>
+                      <th className="col-action">Action</th>
+                      <th className="col-delete">Delete</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(filesByFolder[folder] || []).map((file) => (
+                      <tr key={file.file_id}>
+                        <td>{file.file_name}</td>
+                        <td>
+                          {file.rag_status ? <span className="success">✅ RAG Created</span> : 'Pending'}
+                        </td>
+                        <td>
+                          {!file.rag_status && (
+                            <button onClick={() => handleCreateRAG(file.file_id, folder)}>
+                              {loadingRAG[file.file_id] ? <ClipLoader color="#000" size={15} /> : 'Create RAG'}
+                            </button>
+                          )}
+                        </td>
+                        <td>
+                          <button className="delete-btn" onClick={() => handleDeleteFile(file.file_id, folder)}>
+                            {loadingDelete[file.file_id] ? (
+                              <ClipLoader color="#fff" size={15} />
+                            ) : (
+                              '🗑️'
+                            )}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))
+          )}
+        </div>
+      )}
     </div>
     </div>
   );
