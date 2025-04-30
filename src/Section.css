@@ -360,6 +360,13 @@ hr {
   overflow: hidden;
 }
 
+.loading-indicator {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 5px 0;
+}
+
 .folder-header {
   display: flex;
   align-items: center;

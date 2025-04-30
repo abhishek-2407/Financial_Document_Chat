@@ -29,7 +29,7 @@ function Section() {
     useEffect(() => {
         setMessages([
             {
-                content: "Welcome to Agentic Customer Support!\nI can help with all the FAQs related to 'Hack the Future' and many more domain. Please check top right corner to know about me.",
+                content: "Welcome to the AI-powered document evaluation system. You can ask questions about the documents you've uploaded. Let's get started!",
                 sender: "system"
             }
         ]);
@@ -59,7 +59,7 @@ function Section() {
             // Calculate if we're near the bottom
             const threshold = 50;
             const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-            
+
             // Update auto-scroll state based on position
             setShouldAutoScroll(distanceFromBottom <= threshold);
 
@@ -164,11 +164,11 @@ function Section() {
         setMessages(prev => [...prev, { content: inputMessage, sender: "user" }]);
         const messageToProcess = inputMessage;
         setInputMessage('');
-        
+
         // Reset scroll state when a new message is sent
         setShouldAutoScroll(true);
         setIsUserScrolling(false);
-        
+
         await sendChatMessage(messageToProcess);
     };
 
@@ -213,9 +213,15 @@ function Section() {
             let fullResponse = '';
             let currentContent = '';
 
+            // UPDATED ANIMATION FUNCTION - Process chunks more efficiently
             const updateMessage = async (text) => {
-                for (let i = 0; i < text.length; i++) {
-                    currentContent += text[i];
+                // Process text in larger batches for faster animation
+                const chunkSize = 10; // Increase this for even faster animation
+
+                for (let i = 0; i < text.length; i += chunkSize) {
+                    // Take a chunk of characters at once
+                    const chunk = text.substring(i, Math.min(i + chunkSize, text.length));
+                    currentContent += chunk;
 
                     setMessages(prev => {
                         const updated = [...prev];
@@ -226,12 +232,11 @@ function Section() {
                         return updated;
                     });
 
-                    await new Promise(resolve => setTimeout(resolve, 1));
+                    // Reduced delay between updates for faster animation
+                    // Only put a small delay between batches
+                    await new Promise(resolve => setTimeout(resolve, 0));
                 }
             };
-
-           
-
 
             while (true) {
                 const { value, done } = await reader.read();
@@ -314,8 +319,10 @@ function Section() {
                                         </div>
                                     )}
                                     <div className="message-content">
-                                        {msg.loading ? (
-                                            <PulseLoader color="#d4076a" size={10} />
+                                        {msg.streaming && msg.content === '' ? (
+                                            <div className="loading-indicator">
+                                                <PulseLoader color="#d4076a" size={10} />
+                                            </div>
                                         ) : (
                                             <ReactMarkdown
                                                 remarkPlugins={[remarkGfm, remarkGemoji]}
