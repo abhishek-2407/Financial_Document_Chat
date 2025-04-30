@@ -216,7 +216,7 @@ function Section() {
             // UPDATED ANIMATION FUNCTION - Process chunks more efficiently
             const updateMessage = async (text) => {
                 // Process text in larger batches for faster animation
-                const chunkSize = 10; // Increase this for even faster animation
+                const chunkSize = 5; // Increase this for even faster animation
 
                 for (let i = 0; i < text.length; i += chunkSize) {
                     // Take a chunk of characters at once
