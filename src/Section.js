@@ -189,6 +189,7 @@ function Section() {
         setIsLoading(true);
         const tempId = Date.now();
 
+        // Temporary loading message
         setMessages(prev => [...prev, { id: tempId, content: '', sender: 'system', streaming: true }]);
 
         try {
@@ -201,59 +202,72 @@ function Section() {
                     user_id: "11111111-1111-1111-1111-111111111111",
                     query_id: "query_1",
                     file_id_list: selectedFileIds,
-                    stream: true
+                    stream: false
                 })
             });
 
-            if (!response.ok || !response.body) throw new Error("Stream error or empty body");
+            if (!response.ok) throw new Error("Network response was not ok");
 
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder("utf-8");
+            // Check if it's a stream or not
+            const contentType = response.headers.get('Content-Type');
+            const isStream = contentType && contentType.includes('application/octet-stream');
 
-            let fullResponse = '';
-            let currentContent = '';
+            if (isStream && response.body) {
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder("utf-8");
 
-            // UPDATED ANIMATION FUNCTION - Process chunks more efficiently
-            const updateMessage = async (text) => {
-                // Process text in larger batches for faster animation
-                const chunkSize = 5; // Increase this for even faster animation
+                let currentContent = '';
 
-                for (let i = 0; i < text.length; i += chunkSize) {
-                    // Take a chunk of characters at once
-                    const chunk = text.substring(i, Math.min(i + chunkSize, text.length));
-                    currentContent += chunk;
+                const updateMessage = async (text) => {
+                    const chunkSize = 5;
+                    for (let i = 0; i < text.length; i += chunkSize) {
+                        const chunk = text.substring(i, i + chunkSize);
+                        currentContent += chunk;
 
-                    setMessages(prev => {
-                        const updated = [...prev];
-                        const last = updated[updated.length - 1];
-                        if (last && last.streaming) {
-                            updated[updated.length - 1] = { ...last, content: currentContent };
-                        }
-                        return updated;
-                    });
+                        setMessages(prev => {
+                            const updated = [...prev];
+                            const last = updated[updated.length - 1];
+                            if (last?.streaming) {
+                                updated[updated.length - 1] = { ...last, content: currentContent };
+                            }
+                            return updated;
+                        });
 
-                    // Reduced delay between updates for faster animation
-                    // Only put a small delay between batches
-                    await new Promise(resolve => setTimeout(resolve, 0));
+                        await new Promise(resolve => setTimeout(resolve, 0));
+                    }
+                };
+
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    const chunk = decoder.decode(value, { stream: true });
+                    await updateMessage(chunk);
                 }
-            };
 
-            while (true) {
-                const { value, done } = await reader.read();
-                if (done) break;
-                const chunk = decoder.decode(value, { stream: true });
-                fullResponse += chunk;
-                await updateMessage(chunk);
+                // Finalize streaming message
+                setMessages(prev => {
+                    const updated = [...prev];
+                    const last = updated[updated.length - 1];
+                    if (last?.streaming) {
+                        updated[updated.length - 1] = { ...last, streaming: false, content: currentContent };
+                    }
+                    return updated;
+                });
+
+            } else {
+                // Non-streaming JSON response
+                const data = await response.json();
+                const content = data.final_response || "No result found.";
+
+                setMessages(prev => {
+                    const updated = [...prev];
+                    const last = updated[updated.length - 1];
+                    if (last?.streaming) {
+                        updated[updated.length - 1] = { ...last, streaming: false, content };
+                    }
+                    return updated;
+                });
             }
-
-            setMessages(prev => {
-                const updated = [...prev];
-                const last = updated[updated.length - 1];
-                if (last?.streaming) {
-                    updated[updated.length - 1] = { ...last, streaming: false, content: currentContent };
-                }
-                return updated;
-            });
 
         } catch (error) {
             setMessages(prev => [...prev, { content: `An error occurred: ${error.message}`, sender: "system" }]);
