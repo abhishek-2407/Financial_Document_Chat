@@ -231,4 +231,31 @@ button:disabled {
   align-items: center;
   gap: 0.4rem;
 }
+
+.selected-files {
+  margin-top: 10px;
+  font-size: 0.9rem;
+}
+
+.selected-files ul {
+  padding-left: 20px;
+  margin: 5px 0;
+}
+
+.selected-files li {
+  list-style-type: disc;
+}
+
+.remove-btn {
+  margin-left: 10px;
+  background: transparent;
+  color: #ff5252;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.remove-btn:hover {
+  color: #ff1744;
+}
 }

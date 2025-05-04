@@ -56,11 +56,20 @@ const UploadFile = () => {
   };
 
   const handleFileSelection = (event, folderName) => {
-    const file = event.target.files[0];
-    if (!file) return;
+    const selectedFiles = Array.from(event.target.files);
+    if (selectedFiles.length === 0) return;
     setPendingUploads(prev => ({
       ...prev,
-      [folderName]: [...(prev[folderName] || []), file]
+      [folderName]: [...(prev[folderName] || []), ...selectedFiles]
+    }));
+    event.target.value = null;
+
+  };
+
+  const handleRemovePendingFile = (folderName, indexToRemove) => {
+    setPendingUploads(prev => ({
+      ...prev,
+      [folderName]: prev[folderName].filter((_, idx) => idx !== indexToRemove)
     }));
   };
 
@@ -164,88 +173,110 @@ const UploadFile = () => {
 
   return (
     <div className='upload_file'>
-    <div className="app-container">
-      <ToastContainer position="top-right" autoClose={2000} hideProgressBar />
+      <div className="app-container">
+        <ToastContainer position="top-right" autoClose={2000} hideProgressBar />
 
-      <h1>📁 RAG Document Manager</h1>
+        <h1>📁 RAG Document Manager</h1>
 
-      <div className="folder-creator">
-        <input
-          type="text"
-          value={newFolderName}
-          placeholder="New Folder Name"
-          onChange={(e) => setNewFolderName(e.target.value)}
-        />
-        <button onClick={handleCreateFolder}>Create Folder</button>
-      </div>
-
-      {loadingFiles ? (
-        <div className="loading-container">
-          <ClipLoader color="#d4076a" size={40} />
-          <p>Loading folders and files...</p>
+        <div className="folder-creator">
+          <input
+            type="text"
+            value={newFolderName}
+            placeholder="New Folder Name"
+            onChange={(e) => setNewFolderName(e.target.value)}
+          />
+          <button onClick={handleCreateFolder}>Create Folder</button>
         </div>
-      ) : (
-        <div className="folders-grid">
-          {folders.length === 0 ? (
-            <div className="no-folders">
-              <p>No folders found. Create a new folder to get started.</p>
-            </div>
-          ) : (
-            folders.map((folder) => (
-              <div key={folder} className="folder-block">
-                <h2>{folder}</h2>
-                <div className="upload-box">
-                  <input
-                    type="file"
-                    onChange={(e) => handleFileSelection(e, folder)}
-                    accept="application/pdf"
-                  />
-                  <button className="upload-btn" onClick={() => handleUploadDocuments(folder)}>
-                    {loadingUpload[folder] ? <ClipLoader color="#fff" size={20} /> : 'Upload Documents'}
-                  </button>
-                </div>
-                <table className="file-table">
-                  <thead>
-                    <tr>
-                      <th className="col-filename">File Name</th>
-                      <th className="col-status">Status</th>
-                      <th className="col-action">Action</th>
-                      <th className="col-delete">Delete</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(filesByFolder[folder] || []).map((file) => (
-                      <tr key={file.file_id}>
-                        <td>{file.file_name}</td>
-                        <td>
-                          {file.rag_status ? <span className="success">✅ RAG Created</span> : 'Pending'}
-                        </td>
-                        <td>
-                          {!file.rag_status && (
-                            <button onClick={() => handleCreateRAG(file.file_id, folder)}>
-                              {loadingRAG[file.file_id] ? <ClipLoader color="#000" size={15} /> : 'Create RAG'}
-                            </button>
-                          )}
-                        </td>
-                        <td>
-                          <button className="delete-btn" onClick={() => handleDeleteFile(file.file_id, folder)}>
-                            {loadingDelete[file.file_id] ? (
-                              <ClipLoader color="#fff" size={15} />
-                            ) : (
-                              '🗑️'
-                            )}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+
+        {loadingFiles ? (
+          <div className="loading-container">
+            <ClipLoader color="#d4076a" size={40} />
+            <p>Loading folders and files...</p>
+          </div>
+        ) : (
+          <div className="folders-grid">
+            {folders.length === 0 ? (
+              <div className="no-folders">
+                <p>No folders found. Create a new folder to get started.</p>
               </div>
-            ))
-          )}
-        </div>
-      )}
-    </div>
+            ) : (
+              folders.map((folder) => (
+                <div key={folder} className="folder-block">
+                  <h2>{folder}</h2>
+                  <div className="upload-box">
+                    
+                    <input
+                      type="file"
+                      multiple
+                      onChange={(e) => handleFileSelection(e, folder)}
+                      accept="application/pdf"
+                    />
+                    <button className="upload-btn" onClick={() => handleUploadDocuments(folder)}>
+                      {loadingUpload[folder] ? <ClipLoader color="#fff" size={20} /> : 'Upload Documents'}
+                    </button>
+                  </div>
+                  <div>
+                  {(pendingUploads[folder] || []).length > 0 && (
+                      <div className="selected-files">
+                        <p>Selected files:</p>
+                        <ul>
+                          {pendingUploads[folder].map((file, idx) => (
+                            <li key={idx}>
+                              {file.name}{' '}
+                              <button
+                                className="remove-btn"
+                                onClick={() => handleRemovePendingFile(folder, idx)}
+                              >
+                                ❌
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    </div>
+                  <table className="file-table">
+                    <thead>
+                      <tr>
+                        <th className="col-filename">File Name</th>
+                        <th className="col-status">Status</th>
+                        <th className="col-action">Action</th>
+                        <th className="col-delete">Delete</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(filesByFolder[folder] || []).map((file) => (
+                        <tr key={file.file_id}>
+                          <td>{file.file_name}</td>
+                          <td>
+                            {file.rag_status ? <span className="success">✅ RAG Created</span> : 'Pending'}
+                          </td>
+                          <td>
+                            {!file.rag_status && (
+                              <button onClick={() => handleCreateRAG(file.file_id, folder)}>
+                                {loadingRAG[file.file_id] ? <ClipLoader color="#000" size={15} /> : 'Create RAG'}
+                              </button>
+                            )}
+                          </td>
+                          <td>
+                            <button className="delete-btn" onClick={() => handleDeleteFile(file.file_id, folder)}>
+                              {loadingDelete[file.file_id] ? (
+                                <ClipLoader color="#fff" size={15} />
+                              ) : (
+                                '🗑️'
+                              )}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
