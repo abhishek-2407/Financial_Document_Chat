@@ -51,7 +51,7 @@ body, html {
 }
 
 .left-panel h3 {
-  font-size: 40px;
+  font-size: 16px;
   margin-bottom: 15px;
   color: var(--text-color);
   font-weight: 600;
