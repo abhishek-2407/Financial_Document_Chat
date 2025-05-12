@@ -57,7 +57,7 @@ function Section() {
             setIsUserScrolling(true);
 
             // Calculate if we're near the bottom
-            const threshold = 50;
+            const threshold = 100;
             const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
 
             // Update auto-scroll state based on position
@@ -202,7 +202,7 @@ function Section() {
                     user_id: "11111111-1111-1111-1111-111111111111",
                     query_id: "query_1",
                     file_id_list: selectedFileIds,
-                    stream: false
+                    stream: true
                 })
             });
 
@@ -210,16 +210,16 @@ function Section() {
 
             // Check if it's a stream or not
             const contentType = response.headers.get('Content-Type');
-            const isStream = contentType && contentType.includes('application/octet-stream');
+            const isStream = true;
 
-            if (isStream && response.body) {
+            if (isStream) {
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder("utf-8");
 
                 let currentContent = '';
 
                 const updateMessage = async (text) => {
-                    const chunkSize = 5;
+                    const chunkSize = 10;
                     for (let i = 0; i < text.length; i += chunkSize) {
                         const chunk = text.substring(i, i + chunkSize);
                         currentContent += chunk;

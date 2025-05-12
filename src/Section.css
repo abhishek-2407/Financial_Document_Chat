@@ -51,7 +51,7 @@ body, html {
 }
 
 .left-panel h3 {
-  font-size: 16px;
+  font-size: 40px;
   margin-bottom: 15px;
   color: var(--text-color);
   font-weight: 600;
@@ -359,6 +359,7 @@ hr {
   border-radius: 6px;
   overflow: hidden;
 }
+
 
 .loading-indicator {
   display: flex;
