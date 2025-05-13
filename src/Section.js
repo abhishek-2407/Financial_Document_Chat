@@ -17,7 +17,6 @@ function Section() {
     const [files, setFiles] = useState([]);
     const [selectedFileIds, setSelectedFileIds] = useState([]);
     const [openFolders, setOpenFolders] = useState({});
-    const [selectedFolderName, setSelectedFolderName] = useState('');
     const chatContainerRef = useRef(null);
     const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
     const [isUserScrolling, setIsUserScrolling] = useState(false);
@@ -117,28 +116,10 @@ function Section() {
     };
 
     const toggleFileSelection = (fileId) => {
-        const file = files.find(f => f.file_id === fileId);
-        const folderName = file.folder_name;
-
         if (selectedFileIds.includes(fileId)) {
-            const updatedFileIds = selectedFileIds.filter(id => id !== fileId);
-            if (updatedFileIds.length === 0) {
-                setSelectedFileIds([]);
-                setSelectedFolderName('');
-            } else {
-                setSelectedFileIds(updatedFileIds);
-            }
+            setSelectedFileIds(prev => prev.filter(id => id !== fileId));
         } else {
-            if (selectedFileIds.length === 0) {
-                setSelectedFileIds([fileId]);
-                setSelectedFolderName(folderName);
-            } else {
-                if (folderName === selectedFolderName) {
-                    setSelectedFileIds([...selectedFileIds, fileId]);
-                } else {
-                    toast.error("You can only select files from the same folder.");
-                }
-            }
+            setSelectedFileIds(prev => [...prev, fileId]);
         }
     };
 
@@ -198,7 +179,6 @@ function Section() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     query,
-                    ticket_id: selectedFolderName,
                     user_id: "11111111-1111-1111-1111-111111111111",
                     query_id: "query_1",
                     file_id_list: selectedFileIds,
