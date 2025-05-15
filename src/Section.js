@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './Section.css';
-import { Send, ChevronRight, FolderOpen } from 'lucide-react';
+import { Send, ChevronRight, FolderOpen, File } from 'lucide-react';
 import { FaRobot } from 'react-icons/fa';
 import { PulseLoader } from 'react-spinners';
 import ReactMarkdown from 'react-markdown';
@@ -97,21 +97,33 @@ function Section() {
             const data = await response.json();
             if (data.status_code === 200) {
                 setFiles(data.data);
-                const folders = {};
+                // Initialize all folders as closed
+                const folderPaths = new Set();
                 data.data.forEach(file => {
-                    folders[file.folder_name] = false;
+                    const parts = file.folder_name.split('/');
+                    let path = '';
+                    parts.forEach(part => {
+                        path = path ? `${path}/${part}` : part;
+                        folderPaths.add(path);
+                    });
                 });
-                setOpenFolders(folders);
+                
+                const foldersState = {};
+                folderPaths.forEach(path => {
+                    foldersState[path] = false;
+                });
+                setOpenFolders(foldersState);
             }
         } catch (err) {
             console.error("Error fetching files", err);
+            toast.error("Failed to fetch files");
         }
     };
 
-    const toggleFolder = (folderName) => {
+    const toggleFolder = (folderPath) => {
         setOpenFolders(prev => ({
             ...prev,
-            [folderName]: !prev[folderName]
+            [folderPath]: !prev[folderPath]
         }));
     };
 
@@ -123,15 +135,38 @@ function Section() {
         }
     };
 
-    const getFolders = () => {
-        const folders = {};
+    // Build a folder hierarchy tree from the flat list of files
+    const buildFolderTree = () => {
+        const tree = { name: 'root', children: {}, files: [] };
+        
         files.forEach(file => {
-            if (!folders[file.folder_name]) {
-                folders[file.folder_name] = [];
+            const folderPath = file.folder_name;
+            const pathParts = folderPath.split('/').filter(Boolean);
+            
+            let current = tree;
+            
+            // Navigate the tree
+            for (let i = 0; i < pathParts.length; i++) {
+                const part = pathParts[i];
+                const fullPath = pathParts.slice(0, i + 1).join('/');
+                
+                if (!current.children[part]) {
+                    current.children[part] = {
+                        name: part,
+                        path: fullPath,
+                        children: {},
+                        files: []
+                    };
+                }
+                
+                current = current.children[part];
             }
-            folders[file.folder_name].push(file);
+            
+            // Add file to the current folder
+            current.files.push(file);
         });
-        return folders;
+        
+        return tree;
     };
 
     const handleInputChange = (e) => {
@@ -251,12 +286,63 @@ function Section() {
 
         } catch (error) {
             setMessages(prev => [...prev, { content: `An error occurred: ${error.message}`, sender: "system" }]);
+            toast.error("Failed to send message");
         } finally {
             setIsLoading(false);
         }
     };
 
-    const folders = getFolders();
+    // Recursive component to render folders and subfolders
+    const RenderFolder = ({ folder, level = 0 }) => {
+        const folderKeys = Object.keys(folder.children);
+        return (
+            <>
+                {folderKeys.map(key => {
+                    const childFolder = folder.children[key];
+                    return (
+                        <div key={childFolder.path} className="folder" style={{ marginLeft: `${level * 16}px` }}>
+                            <div className="folder-header" onClick={() => toggleFolder(childFolder.path)}>
+                                <ChevronRight 
+                                    className={`folder-icon ${openFolders[childFolder.path] ? 'open' : ''}`} 
+                                    size={16} 
+                                />
+                                <FolderOpen size={16} />
+                                <span className="folder-name">{childFolder.name}</span>
+                            </div>
+
+                            {openFolders[childFolder.path] && (
+                                <div className="folder-content">
+                                    <RenderFolder folder={childFolder} level={level + 1} />
+                                    
+                                    {childFolder.files.map(file => {
+                                        const fileName = file.file_name.split('/').pop();
+                                        return (
+                                            <div 
+                                                key={file.file_id} 
+                                                className="file-item"
+                                                style={{ marginLeft: `${(level + 1) * 16}px` }}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    className="file-checkbox"
+                                                    checked={selectedFileIds.includes(file.file_id)}
+                                                    onChange={() => toggleFileSelection(file.file_id)}
+                                                />
+                                                <File size={14} />
+                                                <span className="file-name">{fileName}</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </>
+        );
+    };
+
+    const folderTree = buildFolderTree();
 
     return (
         <div className='chat-section'>
@@ -268,32 +354,7 @@ function Section() {
                     {files.length === 0 && <p>Loading files...</p>}
 
                     <div className="folders-container">
-                        {Object.keys(folders).map(folderName => (
-                            <div key={folderName} className="folder">
-                                <div className="folder-header" onClick={() => toggleFolder(folderName)}>
-                                    <ChevronRight className={`folder-icon ${openFolders[folderName] ? 'open' : ''}`} size={16} />
-                                    <FolderOpen size={16} />
-                                    <span className="folder-name">{folderName}</span>
-                                </div>
-
-                                <div className={`folder-files ${openFolders[folderName] ? 'open' : ''}`}>
-                                    {folders[folderName].map(file => {
-                                        const fileName = file.file_name.split('/').pop();
-                                        return (
-                                            <div key={file.file_id} className="file-item">
-                                                <input
-                                                    type="checkbox"
-                                                    className="file-checkbox"
-                                                    checked={selectedFileIds.includes(file.file_id)}
-                                                    onChange={() => toggleFileSelection(file.file_id)}
-                                                />
-                                                <span className="file-name">{fileName}</span>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        ))}
+                        <RenderFolder folder={folderTree} />
                     </div>
                 </div>
 
